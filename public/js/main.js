@@ -64,30 +64,38 @@ async function renderNavbar() {
   const user = Auth.getUser();
   let rightHtml = '';
 
+  const tr = typeof I18n !== 'undefined' ? k => I18n.t(k) : k => k;
   if (user) {
     let unread = 0;
     try { const d = await apiFetch('/messages/unread/count'); unread = d.count || 0; } catch {}
     const badge = unread ? `<span class="badge">${unread}</span>` : '';
     rightHtml = `
-      <a href="/messages.html">Messages${badge}</a>
-      ${user.role === 'seller' || user.role === 'admin' ? '<a href="/seller-dashboard.html">My Shop</a>' : ''}
-      ${user.role === 'buyer' || user.role === 'seller' ? '<a href="/buyer-dashboard.html">My Account</a>' : ''}
-      ${user.role === 'admin' ? '<a href="/admin/">Admin</a>' : ''}
-      <button onclick="logout()">Logout (${escHtml(user.full_name || user.email)})</button>`;
+      <a href="/messages.html">${tr('nav.messages')}${badge}</a>
+      ${user.role === 'seller' || user.role === 'admin' ? `<a href="/seller-dashboard.html">${tr('nav.my_shop')}</a>` : ''}
+      ${user.role === 'buyer' || user.role === 'seller' ? `<a href="/buyer-dashboard.html">${tr('nav.my_account')}</a>` : ''}
+      ${user.role === 'admin' ? `<a href="/admin/">${tr('nav.admin')}</a>` : ''}
+      <button onclick="logout()">${tr('nav.logout')} (${escHtml(user.full_name || user.email)})</button>`;
   } else {
     rightHtml = `
-      <button onclick="showAuthModal('login')">Login</button>
-      <button class="btn-primary" onclick="showAuthModal('register')">Register</button>`;
+      <button onclick="showAuthModal('login')">${tr('nav.login')}</button>
+      <button class="btn-primary" onclick="showAuthModal('register')">${tr('nav.register')}</button>`;
   }
+
+  const langLabel = (typeof I18n !== 'undefined' && I18n.lang === 'bn') ? 'EN' : 'বাং';
+  const searchPlaceholder = typeof I18n !== 'undefined' ? I18n.t('nav.search.placeholder') : 'Search handmade items…';
+  const searchBtn = typeof I18n !== 'undefined' ? I18n.t('nav.search.btn') : 'Search';
 
   nav.innerHTML = `
     <div class="nav-inner">
       <a href="/" class="nav-brand">${logoHtml}</a>
       <form class="nav-search" onsubmit="navSearch(event)">
-        <input type="text" id="nav-search-input" placeholder="Search handmade items…">
-        <button type="submit" class="btn btn-primary btn-sm">Search</button>
+        <input type="text" id="nav-search-input" placeholder="${searchPlaceholder}">
+        <button type="submit" class="btn btn-primary btn-sm">${searchBtn}</button>
       </form>
-      <div class="nav-links">${rightHtml}</div>
+      <div class="nav-links">
+        <button id="lang-toggle-btn" class="btn btn-outline btn-sm" onclick="I18n.toggle()" title="Switch language" style="font-size:.85rem;padding:.25rem .6rem">${langLabel}</button>
+        ${rightHtml}
+      </div>
     </div>`;
 }
 
@@ -139,6 +147,7 @@ function statusBadge(status) {
 
 // ── Init page ────────────────────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  if (typeof I18n !== 'undefined') I18n.init();
   renderNavbar();
   renderFooter();
   // Close modal on overlay click
