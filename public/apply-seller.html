@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Become a Seller – OriginalHub</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav id="main-nav"></nav>
+  <div class="container page-content" style="max-width:600px">
+    <h1 style="margin-bottom:.5rem">Become a Seller</h1>
+    <p style="color:var(--text-muted);margin-bottom:1.5rem">Share your handmade creations with buyers across Bangladesh.</p>
+
+    <div class="card">
+      <div class="card-body">
+        <form onsubmit="submitSellerApplication(event)">
+          <div class="form-group">
+            <label>Shop Name</label>
+            <input name="shop_name" required maxlength="100" placeholder="Your handmade shop name">
+          </div>
+          <div class="form-group">
+            <label>What do you make? <span class="form-hint">(bio)</span></label>
+            <textarea name="bio" required placeholder="Tell buyers about your craft…"></textarea>
+          </div>
+          <div class="form-group">
+            <label>Location <span class="form-hint">(district / city)</span></label>
+            <input name="location" required placeholder="e.g. Dhaka, Chittagong…">
+          </div>
+          <div class="form-group">
+            <label>Phone Number <span class="form-hint">(for bKash/Nagad – only shown after connecting with a buyer)</span></label>
+            <input name="phone_number" type="tel" required placeholder="+880…">
+          </div>
+          <div class="form-group">
+            <label>Handmade Promise</label>
+            <textarea name="handmade_promise" required placeholder="I confirm that all items I list are genuinely handmade by me…"></textarea>
+            <div class="form-hint">Confirm that everything you sell is genuinely handmade by you.</div>
+          </div>
+          <div id="apply-error" class="error-msg"></div>
+          <button type="submit" class="btn btn-primary btn-lg" style="width:100%">Submit Application</button>
+        </form>
+      </div>
+    </div>
+  </div>
+  <footer id="main-footer"></footer>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/main.js"></script>
+  <script src="/js/seller.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!Auth.isLoggedIn()) showAuthModal('login');
+    });
+  </script>
+</body>
+</html>

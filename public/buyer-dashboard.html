@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>My Account – OriginalHub</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav id="main-nav"></nav>
+  <div class="container page-content">
+    <h2 style="margin-bottom:1.5rem">My Account</h2>
+    <div class="tabs">
+      <button class="tab-btn buyer-tab-btn active" data-tab="favorites"  onclick="switchBuyerTab('favorites')">Saved Items</button>
+      <button class="tab-btn buyer-tab-btn"         data-tab="messages"   onclick="switchBuyerTab('messages')">My Messages</button>
+      <button class="tab-btn buyer-tab-btn"         data-tab="reports"    onclick="switchBuyerTab('reports')">My Reports</button>
+      <button class="tab-btn buyer-tab-btn"         data-tab="settings"   onclick="switchBuyerTab('settings')">Settings</button>
+    </div>
+    <div id="buyer-tab-favorites" class="buyer-tab-panel active"><div id="favorites-list"></div></div>
+    <div id="buyer-tab-messages"  class="buyer-tab-panel"><div id="buyer-threads"></div></div>
+    <div id="buyer-tab-reports"   class="buyer-tab-panel"><div id="my-reports"></div></div>
+    <div id="buyer-tab-settings"  class="buyer-tab-panel"><div id="account-settings"></div></div>
+  </div>
+  <footer id="main-footer"></footer>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/main.js"></script>
+  <script src="/js/buyer.js"></script>
+  <script>document.addEventListener('DOMContentLoaded', loadBuyerDashboard);</script>
+</body>
+</html>

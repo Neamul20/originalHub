@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Browse – OriginalHub</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav id="main-nav"></nav>
+
+  <div class="container page-content">
+    <h1 style="margin-bottom:1.5rem">Browse Products</h1>
+    <div class="browse-layout">
+      <!-- Filters -->
+      <aside class="filters card card-body">
+        <h3 style="margin-bottom:1rem">Filters</h3>
+        <div class="filter-group">
+          <h4>Search</h4>
+          <input type="text" id="filter-search" placeholder="Keywords…">
+        </div>
+        <div class="filter-group">
+          <h4>Category</h4>
+          <select id="filter-category" id="category-select">
+            <option value="">All Categories</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <h4>Price (BDT)</h4>
+          <div class="price-range">
+            <input type="number" id="filter-min-price" placeholder="Min" min="0">
+            <span>–</span>
+            <input type="number" id="filter-max-price" placeholder="Max" min="0">
+          </div>
+        </div>
+        <div class="filter-group">
+          <h4>Location</h4>
+          <input type="text" id="filter-location" placeholder="City, district…">
+        </div>
+        <button class="btn btn-primary" style="width:100%" onclick="applyFilters()">Apply Filters</button>
+        <button class="btn btn-outline" style="width:100%;margin-top:.5rem" onclick="clearFilters()">Clear</button>
+      </aside>
+
+      <!-- Results -->
+      <div>
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+          <span id="results-info" style="color:var(--text-muted);font-size:.9rem"></span>
+        </div>
+        <div class="product-grid" id="product-grid"></div>
+        <div class="pagination" id="pagination"></div>
+      </div>
+    </div>
+  </div>
+
+  <footer id="main-footer"></footer>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/main.js"></script>
+  <script src="/js/products.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      renderCategoryFilter();
+      // Pre-fill from URL params
+      const p = new URLSearchParams(window.location.search);
+      if (p.get('search'))   { document.getElementById('filter-search').value   = p.get('search');   currentFilters.search   = p.get('search'); }
+      if (p.get('category')) { document.getElementById('filter-category').value = p.get('category'); currentFilters.category = p.get('category'); }
+      loadProducts(1);
+    });
+    function clearFilters() {
+      document.getElementById('filter-search').value    = '';
+      document.getElementById('filter-category').value  = '';
+      document.getElementById('filter-min-price').value = '';
+      document.getElementById('filter-max-price').value = '';
+      document.getElementById('filter-location').value  = '';
+      currentFilters = {};
+      loadProducts(1);
+    }
+  </script>
+</body>
+</html>

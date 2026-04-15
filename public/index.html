@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>OriginalHub</title>
+  <link rel="icon" href="/favicon.ico">
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav id="main-nav"></nav>
+
+  <!-- Hero -->
+  <section class="hero">
+    <div class="container">
+      <h1 id="hero-title">OriginalHub</h1>
+      <p id="hero-tagline">Authentic Handmade Marketplace</p>
+      <form class="hero-search" onsubmit="heroSearch(event)">
+        <input type="text" id="hero-search-input" placeholder="Search for handmade jewelry, pottery, textiles…">
+        <button type="submit" class="btn btn-primary">Search</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- Category pills -->
+  <div class="container" style="margin-top:1.5rem;display:flex;gap:.5rem;flex-wrap:wrap" id="category-pills"></div>
+
+  <!-- Products grid -->
+  <div class="container page-content">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+      <h2>Latest Listings</h2>
+      <a href="/browse.html" class="btn btn-outline btn-sm">Browse All</a>
+    </div>
+    <div class="product-grid" id="product-grid"></div>
+    <div class="pagination" id="pagination"></div>
+  </div>
+
+  <footer id="main-footer"></footer>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/main.js"></script>
+  <script src="/js/products.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      // Apply hero text from config
+      if (typeof ORIGINALHUB_CONFIG !== 'undefined') {
+        document.getElementById('hero-title').textContent   = ORIGINALHUB_CONFIG.SITE_NAME;
+        document.getElementById('hero-tagline').textContent = ORIGINALHUB_CONFIG.SITE_TAGLINE;
+      }
+      // Category pills
+      if (typeof ORIGINALHUB_CONFIG !== 'undefined') {
+        const pills = document.getElementById('category-pills');
+        ORIGINALHUB_CONFIG.CATEGORIES.forEach(c => {
+          const a = document.createElement('a');
+          a.href = `/browse.html?category=${encodeURIComponent(c)}`;
+          a.className = 'btn btn-outline btn-sm';
+          a.textContent = c;
+          pills.appendChild(a);
+        });
+      }
+      loadProducts(1);
+    });
+    function heroSearch(e) {
+      e.preventDefault();
+      const q = document.getElementById('hero-search-input').value.trim();
+      if (q) window.location.href = `/browse.html?search=${encodeURIComponent(q)}`;
+    }
+  </script>
+</body>
+</html>

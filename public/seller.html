@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seller – OriginalHub</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav id="main-nav"></nav>
+  <div class="container page-content" id="seller-page"></div>
+  <footer id="main-footer"></footer>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/main.js"></script>
+  <script src="/js/products.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      const id = new URLSearchParams(window.location.search).get('id');
+      const el = document.getElementById('seller-page');
+      if (!id) { el.innerHTML = '<p class="error-msg">Seller not found.</p>'; return; }
+      try {
+        const d = await apiFetch(`/seller/public/${id}`);
+        const s = d.seller;
+        document.title = `${s.shop_name} – OriginalHub`;
+        el.innerHTML = `
+          ${s.banner_image ? `<img src="${escHtml(s.banner_image)}" style="width:100%;height:200px;object-fit:cover;border-radius:var(--radius);margin-bottom:1.5rem">` : ''}
+          <div style="display:flex;gap:1.5rem;align-items:flex-start;flex-wrap:wrap;margin-bottom:2rem">
+            <div style="flex:1;min-width:220px">
+              <h1>${escHtml(s.shop_name)}</h1>
+              <p style="color:var(--text-muted);margin:.3rem 0">${escHtml(s.location || '')}</p>
+              <p style="margin-top:.75rem">${escHtml(s.bio || '')}</p>
+            </div>
+          </div>
+          <h2 style="margin-bottom:1rem">Products by ${escHtml(s.shop_name)}</h2>
+          <div class="product-grid">
+            ${d.products.length ? d.products.map(p => `
+              <div class="product-card" onclick="window.location='/product.html?id=${p.id}'">
+                ${p.thumbnail ? `<img class="product-card-img" src="${escHtml(p.thumbnail)}" alt="${escHtml(p.title)}" loading="lazy">` : '<div class="product-card-img-placeholder">🖼️</div>'}
+                <div class="product-card-body">
+                  <div class="product-card-title">${escHtml(p.title)}</div>
+                  <div class="product-card-price">${formatPrice(p.price)}</div>
+                </div>
+              </div>`).join('') : '<p style="color:var(--text-muted);grid-column:1/-1">No products listed yet.</p>'}
+          </div>`;
+      } catch (err) { el.innerHTML = `<p class="error-msg">${err.message}</p>`; }
+    });
+  </script>
+</body>
+</html>

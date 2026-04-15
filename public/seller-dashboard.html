@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Seller Dashboard – OriginalHub</title>
+  <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+  <nav id="main-nav"></nav>
+  <div class="container page-content">
+    <div class="dashboard-layout">
+      <!-- Sidebar -->
+      <nav class="sidebar-nav">
+        <a href="#" class="active" onclick="switchSection('products',this)">My Products</a>
+        <a href="#" onclick="switchSection('messages',this)">Messages</a>
+        <a href="#" onclick="switchSection('profile',this)">Shop Profile</a>
+        <a href="/buyer-dashboard.html">Account Settings</a>
+      </nav>
+
+      <!-- Content -->
+      <div>
+        <!-- Products section -->
+        <div id="section-products">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem">
+            <h2>My Products</h2>
+            <button class="btn btn-primary" onclick="showAddProduct()">+ Add Product</button>
+          </div>
+          <div class="stat-cards" id="seller-stats"></div>
+          <div id="seller-products-table"></div>
+        </div>
+
+        <!-- Messages section -->
+        <div id="section-messages" style="display:none">
+          <h2 style="margin-bottom:1rem">Inbox</h2>
+          <div id="seller-threads"></div>
+        </div>
+
+        <!-- Profile section -->
+        <div id="section-profile" style="display:none">
+          <h2 style="margin-bottom:1rem">Shop Profile</h2>
+          <div class="card" style="max-width:540px">
+            <div class="card-body">
+              <form onsubmit="saveSellerProfile(event)" enctype="multipart/form-data">
+                <div class="form-group">
+                  <label>Shop Name</label>
+                  <input id="sp-name">
+                </div>
+                <div class="form-group">
+                  <label>Bio</label>
+                  <textarea id="sp-bio"></textarea>
+                </div>
+                <div class="form-group">
+                  <label>Location</label>
+                  <input id="sp-location">
+                </div>
+                <div class="form-group">
+                  <label>Banner Image</label>
+                  <input type="file" name="banner" accept="image/jpeg,image/png,image/webp">
+                </div>
+                <div id="sp-msg" class="alert" style="display:none"></div>
+                <button type="submit" class="btn btn-primary">Save Profile</button>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <footer id="main-footer"></footer>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/main.js"></script>
+  <script src="/js/products.js"></script>
+  <script src="/js/seller.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!Auth.isRole('seller','admin')) {
+        document.querySelector('.dashboard-layout').innerHTML =
+          '<div class="alert alert-danger">Seller access required. <a href="/">Go home</a></div>';
+        return;
+      }
+      loadSellerDashboard();
+    });
+
+    function switchSection(name, el) {
+      ['products','messages','profile'].forEach(s => {
+        document.getElementById(`section-${s}`).style.display = s === name ? '' : 'none';
+      });
+      document.querySelectorAll('.sidebar-nav a').forEach(a => a.classList.remove('active'));
+      if (el) el.classList.add('active');
+      if (name === 'messages') loadSellerMessages();
+      if (name === 'profile')  loadSellerProfile();
+    }
+
+    async function loadSellerMessages() {
+      const el = document.getElementById('seller-threads');
+      el.innerHTML = '<div class="spinner"></div>';
+      try {
+        const threads = await apiFetch('/messages/threads');
+        if (!threads.length) { el.innerHTML = '<p style="color:var(--text-muted)">No messages yet.</p>'; return; }
+        el.innerHTML = threads.map(t => `
+          <div class="card" style="margin-bottom:.75rem;cursor:pointer"
+               onclick="window.location='/messages.html?product=${t.product_id}&user=${t.other_user_id}'">
+            <div class="card-body" style="display:flex;gap:1rem">
+              <div style="flex:1">
+                <strong>${escHtml(t.other_user_name)}</strong> — ${escHtml(t.product_title || '')}
+                <div style="font-size:.82rem;color:var(--text-muted)">${escHtml(t.last_message || '')}</div>
+              </div>
+              <div>
+                <div style="font-size:.78rem;color:var(--text-muted)">${timeAgo(t.last_message_at)}</div>
+                ${parseInt(t.unread_count)>0 ? `<span class="badge">${t.unread_count}</span>` : ''}
+              </div>
+            </div>
+          </div>`).join('');
+      } catch (err) { el.innerHTML = `<p class="error-msg">${err.message}</p>`; }
+    }
+
+    async function loadSellerProfile() {
+      try {
+        const sp = await apiFetch('/seller/profile');
+        document.getElementById('sp-name').value     = sp.shop_name || '';
+        document.getElementById('sp-bio').value      = sp.bio || '';
+        document.getElementById('sp-location').value = sp.location || '';
+      } catch {}
+    }
+
+    async function saveSellerProfile(e) {
+      e.preventDefault();
+      const msgEl = document.getElementById('sp-msg');
+      const fd = new FormData(e.target);
+      fd.set('shop_name', document.getElementById('sp-name').value);
+      fd.set('bio',       document.getElementById('sp-bio').value);
+      fd.set('location',  document.getElementById('sp-location').value);
+      try {
+        const res = await fetch('/api/seller/profile', { method: 'PUT', headers: Auth.authHeader(), body: fd });
+        const data = await res.json();
+        if (!res.ok) throw new Error(data.error);
+        msgEl.className = 'alert alert-success'; msgEl.textContent = 'Profile saved'; msgEl.style.display = '';
+      } catch (err) {
+        msgEl.className = 'alert alert-danger'; msgEl.textContent = err.message; msgEl.style.display = '';
+      }
+    }
+  </script>
+</body>
+</html>

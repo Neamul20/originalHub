@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Admin – OriginalHub</title>
+  <link rel="stylesheet" href="/css/style.css">
+  <style>
+    .admin-wrap { display:grid; grid-template-columns:220px 1fr; min-height:calc(100vh - 60px); }
+    .admin-sidebar { background:var(--secondary); color:#fff; padding:1.5rem 1rem; }
+    .admin-sidebar h3 { color:var(--primary); margin-bottom:1rem; font-size:1rem; text-transform:uppercase; letter-spacing:.08em; }
+    .admin-sidebar a { display:block; color:rgba(255,255,255,.8); padding:.5rem .75rem; border-radius:var(--radius); margin-bottom:.2rem; text-decoration:none; font-size:.92rem; }
+    .admin-sidebar a:hover, .admin-sidebar a.active { background:rgba(255,255,255,.12); color:#fff; }
+    .admin-main { padding:2rem; }
+    @media(max-width:700px){ .admin-wrap{ grid-template-columns:1fr } .admin-sidebar{ display:none } }
+  </style>
+</head>
+<body>
+  <nav id="main-nav"></nav>
+  <div class="admin-wrap">
+    <!-- Sidebar -->
+    <aside class="admin-sidebar">
+      <h3>Admin Panel</h3>
+      <a href="#" class="active" onclick="showSection('dashboard',this)">Dashboard</a>
+      <a href="#" onclick="showSection('applications',this)">Seller Applications</a>
+      <a href="#" onclick="showSection('products',this)">Pending Products</a>
+      <a href="#" onclick="showSection('reports',this)">Reports</a>
+      <a href="#" onclick="showSection('users',this)">Users</a>
+    </aside>
+
+    <!-- Main -->
+    <main class="admin-main" id="admin-main">
+      <div id="section-dashboard">
+        <h2 style="margin-bottom:1.5rem">Platform Overview</h2>
+        <div class="stat-cards" id="admin-stats"></div>
+      </div>
+      <div id="section-applications" style="display:none">
+        <h2 style="margin-bottom:1.5rem">Pending Seller Applications</h2>
+        <div id="admin-applications"></div>
+      </div>
+      <div id="section-products" style="display:none">
+        <h2 style="margin-bottom:1.5rem">Products Awaiting Review</h2>
+        <div id="admin-products"></div>
+      </div>
+      <div id="section-reports" style="display:none">
+        <h2 style="margin-bottom:1.5rem">Reported Content</h2>
+        <div id="admin-reports"></div>
+      </div>
+      <div id="section-users" style="display:none">
+        <h2 style="margin-bottom:1.5rem">User Management</h2>
+        <div id="admin-users"></div>
+      </div>
+    </main>
+  </div>
+  <footer id="main-footer"></footer>
+
+  <script src="/js/config.js"></script>
+  <script src="/js/auth.js"></script>
+  <script src="/js/main.js"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      if (!Auth.isRole('admin')) {
+        document.getElementById('admin-main').innerHTML =
+          '<div class="alert alert-danger">Admin access required. <a href="/">Go home</a></div>';
+        return;
+      }
+      loadStats();
+    });
+
+    function showSection(name, el) {
+      ['dashboard','applications','products','reports','users'].forEach(s => {
+        document.getElementById(`section-${s}`).style.display = s === name ? '' : 'none';
+      });
+      document.querySelectorAll('.admin-sidebar a').forEach(a => a.classList.remove('active'));
+      if (el) el.classList.add('active');
+      if (name === 'applications') loadApplications();
+      else if (name === 'products')     loadPendingProducts();
+      else if (name === 'reports')      loadReports();
+      else if (name === 'users')        loadUsers();
+      else loadStats();
+    }
+
+    // ── Stats ─────────────────────────────────────────────────────────────────
+    async function loadStats() {
+      try {
+        const d = await apiFetch('/admin/stats');
+        document.getElementById('admin-stats').innerHTML = `
+          <div class="stat-card"><div class="stat-card-value">${d.users.total}</div><div class="stat-card-label">Total Users</div></div>
+          <div class="stat-card"><div class="stat-card-value">${d.users.buyers}</div><div class="stat-card-label">Buyers</div></div>
+          <div class="stat-card"><div class="stat-card-value">${d.users.sellers}</div><div class="stat-card-label">Sellers</div></div>
+          <div class="stat-card"><div class="stat-card-value">${d.published_products}</div><div class="stat-card-label">Published Products</div></div>
+          <div class="stat-card"><div class="stat-card-value">${d.active_sellers}</div><div class="stat-card-label">Active Sellers</div></div>
+          <div class="stat-card"><div class="stat-card-value">${d.messages.today}</div><div class="stat-card-label">Messages Today</div></div>
+          <div class="stat-card"><div class="stat-card-value">${d.messages.week}</div><div class="stat-card-label">Messages This Week</div></div>
+          <div class="stat-card"><div class="stat-card-value">${d.messages.total}</div><div class="stat-card-label">Total Messages</div></div>`;
+      } catch (err) { document.getElementById('admin-stats').innerHTML = `<p class="error-msg">${err.message}</p>`; }
+    }
+
+    // ── Seller applications ───────────────────────────────────────────────────
+    async function loadApplications() {
+      const el = document.getElementById('admin-applications');
+      el.innerHTML = '<div class="spinner"></div>';
+      try {
+        const apps = await apiFetch('/admin/seller-applications');
+        if (!apps.length) { el.innerHTML = '<p style="color:var(--text-muted)">No pending applications.</p>'; return; }
+        el.innerHTML = apps.map(a => `
+          <div class="card" style="margin-bottom:1rem">
+            <div class="card-body">
+              <h3>${escHtml(a.shop_name)}</h3>
+              <p style="color:var(--text-muted);font-size:.88rem">${escHtml(a.full_name)} · ${escHtml(a.email)} · ${escHtml(a.phone_number || '')}</p>
+              <p style="margin:.5rem 0"><strong>Bio:</strong> ${escHtml(a.bio || '')}</p>
+              <p><strong>Location:</strong> ${escHtml(a.location || '')}</p>
+              <p style="margin-top:.5rem"><strong>Handmade Promise:</strong> ${escHtml(a.handmade_promise || '')}</p>
+              <div style="display:flex;gap:.5rem;margin-top:1rem;flex-wrap:wrap">
+                <button class="btn btn-primary btn-sm" onclick="approveApp(${a.user_id})">✓ Approve</button>
+                <button class="btn btn-danger btn-sm" onclick="rejectApp(${a.user_id})">✕ Reject</button>
+              </div>
+            </div>
+          </div>`).join('');
+      } catch (err) { el.innerHTML = `<p class="error-msg">${err.message}</p>`; }
+    }
+    async function approveApp(userId) {
+      try { await apiFetch(`/admin/seller-applications/${userId}/approve`, { method:'POST' }); toast('Approved'); loadApplications(); }
+      catch(e){ toast(e.message,'danger'); }
+    }
+    async function rejectApp(userId) {
+      const reason = prompt('Rejection reason:');
+      if (!reason) return;
+      try { await apiFetch(`/admin/seller-applications/${userId}/reject`, { method:'POST', body:JSON.stringify({reason}) }); toast('Rejected'); loadApplications(); }
+      catch(e){ toast(e.message,'danger'); }
+    }
+
+    // ── Pending products ──────────────────────────────────────────────────────
+    async function loadPendingProducts() {
+      const el = document.getElementById('admin-products');
+      el.innerHTML = '<div class="spinner"></div>';
+      try {
+        const prods = await apiFetch('/admin/products/pending');
+        if (!prods.length) { el.innerHTML = '<p style="color:var(--text-muted)">No products awaiting review.</p>'; return; }
+        el.innerHTML = prods.map(p => `
+          <div class="card" style="margin-bottom:1rem">
+            <div class="card-body" style="display:flex;gap:1rem;align-items:flex-start;flex-wrap:wrap">
+              ${p.thumbnail ? `<img src="${escHtml(p.thumbnail)}" style="width:80px;height:80px;object-fit:cover;border-radius:4px;flex-shrink:0">` : ''}
+              <div style="flex:1">
+                <h3>${escHtml(p.title)}</h3>
+                <p style="font-size:.85rem;color:var(--text-muted)">${escHtml(p.shop_name)} · ${formatPrice(p.price)}</p>
+                <p style="margin:.4rem 0;font-size:.9rem">${escHtml(p.description?.slice(0,200) || '')}…</p>
+                <p style="font-size:.85rem"><strong>Handmade Proof:</strong> ${escHtml(p.handmade_proof_text?.slice(0,150) || '')}</p>
+                <div style="display:flex;gap:.5rem;margin-top:.75rem;flex-wrap:wrap">
+                  <a href="/product.html?id=${p.id}" target="_blank" class="btn btn-outline btn-sm">Preview</a>
+                  <button class="btn btn-primary btn-sm" onclick="approveProduct(${p.id})">✓ Approve</button>
+                  <button class="btn btn-danger btn-sm" onclick="rejectProduct(${p.id})">✕ Reject</button>
+                </div>
+              </div>
+            </div>
+          </div>`).join('');
+      } catch (err) { el.innerHTML = `<p class="error-msg">${err.message}</p>`; }
+    }
+    async function approveProduct(id) {
+      try { await apiFetch(`/admin/products/${id}/approve`, { method:'POST' }); toast('Product approved'); loadPendingProducts(); }
+      catch(e){ toast(e.message,'danger'); }
+    }
+    async function rejectProduct(id) {
+      const reason = prompt('Rejection reason:');
+      if (!reason) return;
+      try { await apiFetch(`/admin/products/${id}/reject`, { method:'POST', body:JSON.stringify({reason}) }); toast('Product rejected'); loadPendingProducts(); }
+      catch(e){ toast(e.message,'danger'); }
+    }
+
+    // ── Reports ───────────────────────────────────────────────────────────────
+    async function loadReports() {
+      const el = document.getElementById('admin-reports');
+      el.innerHTML = '<div class="spinner"></div>';
+      try {
+        const reps = await apiFetch('/admin/reports');
+        if (!reps.length) { el.innerHTML = '<p style="color:var(--text-muted)">No pending reports.</p>'; return; }
+        el.innerHTML = `<div class="table-wrap"><table>
+          <thead><tr><th>Reporter</th><th>Product</th><th>Reason</th><th>Date</th><th>Action</th></tr></thead>
+          <tbody>${reps.map(r => `
+            <tr>
+              <td>${escHtml(r.reporter_email || '')}</td>
+              <td>${escHtml(r.product_title || '—')}</td>
+              <td>${escHtml(r.reason)}</td>
+              <td>${new Date(r.created_at).toLocaleDateString()}</td>
+              <td>
+                <select id="action-${r.id}">
+                  <option value="dismiss">Dismiss</option>
+                  <option value="warn_user">Warn User</option>
+                  <option value="delete_product">Delete Product</option>
+                  <option value="ban_user">Ban User</option>
+                </select>
+                <button class="btn btn-sm btn-primary" onclick="resolveReport(${r.id})">Apply</button>
+              </td>
+            </tr>`).join('')}
+          </tbody></table></div>`;
+      } catch (err) { el.innerHTML = `<p class="error-msg">${err.message}</p>`; }
+    }
+    async function resolveReport(id) {
+      const action = document.getElementById(`action-${id}`)?.value || 'dismiss';
+      try { await apiFetch(`/admin/reports/${id}/resolve`, { method:'POST', body:JSON.stringify({action}) }); toast('Report resolved'); loadReports(); }
+      catch(e){ toast(e.message,'danger'); }
+    }
+
+    // ── Users ────────────────────────────────────────────────────────────────
+    async function loadUsers() {
+      const el = document.getElementById('admin-users');
+      el.innerHTML = '<div class="spinner"></div>';
+      try {
+        const users = await apiFetch('/admin/users');
+        el.innerHTML = `<div class="table-wrap"><table>
+          <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th>Joined</th><th>Action</th></tr></thead>
+          <tbody>${users.map(u => `
+            <tr>
+              <td>${escHtml(u.full_name || '—')}</td>
+              <td>${escHtml(u.email)}</td>
+              <td>${escHtml(u.role)}</td>
+              <td>${u.is_banned ? '<span class="status-badge status-rejected">Banned</span>' : u.is_suspended ? '<span class="status-badge status-pending_review">Suspended</span>' : '<span class="status-badge status-published">Active</span>'}</td>
+              <td>${new Date(u.created_at).toLocaleDateString()}</td>
+              <td>
+                ${u.role !== 'admin' ? (u.is_banned
+                  ? `<button class="btn btn-outline btn-sm" onclick="unbanUser(${u.id})">Unban</button>`
+                  : `<button class="btn btn-danger btn-sm" onclick="banUser(${u.id})">Ban</button>`) : '—'}
+              </td>
+            </tr>`).join('')}
+          </tbody></table></div>`;
+      } catch (err) { el.innerHTML = `<p class="error-msg">${err.message}</p>`; }
+    }
+    async function banUser(id) {
+      if (!confirm('Ban this user?')) return;
+      try { await apiFetch(`/admin/users/${id}/ban`, { method:'POST' }); toast('User banned'); loadUsers(); }
+      catch(e){ toast(e.message,'danger'); }
+    }
+    async function unbanUser(id) {
+      try { await apiFetch(`/admin/users/${id}/unban`, { method:'POST' }); toast('User unbanned'); loadUsers(); }
+      catch(e){ toast(e.message,'danger'); }
+    }
+  </script>
+</body>
+</html>
