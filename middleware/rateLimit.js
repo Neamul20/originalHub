@@ -19,7 +19,7 @@ const messageLimiter = rateLimit({
 
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 300,
+  max: process.env.NODE_ENV === 'development' ? 10000 : 300,
   message: { error: 'Too many requests.' },
   standardHeaders: true,
   legacyHeaders: false,
