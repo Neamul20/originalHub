@@ -122,7 +122,7 @@ function renderFooter() {
   footer.innerHTML = `
     <div class="container">
       ${socials ? `<p>${socials}</p>` : ''}
-      <p><a href="/pages/about.html">About</a> · <a href="/pages/contact.html">Contact</a> · <a href="/pages/safety.html">Safety Tips</a></p>
+      <p><a href="/pages/about.html">${typeof I18n !== 'undefined' ? I18n.t('footer.about') : 'About'}</a> · <a href="/pages/contact.html">${typeof I18n !== 'undefined' ? I18n.t('footer.contact') : 'Contact'}</a> · <a href="/pages/safety.html">${typeof I18n !== 'undefined' ? I18n.t('footer.safety') : 'Safety Tips'}</a></p>
       <p style="margin-top:.5rem">${escHtml(cfg.FOOTER_TEXT || '')}</p>
     </div>`;
 }

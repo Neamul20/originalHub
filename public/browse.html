@@ -10,35 +10,35 @@
   <nav id="main-nav"></nav>
 
   <div class="container page-content">
-    <h1 style="margin-bottom:1.5rem">Browse Products</h1>
+    <h1 style="margin-bottom:1.5rem" data-i18n="browse.title">Browse Products</h1>
     <div class="browse-layout">
       <!-- Filters -->
       <aside class="filters card card-body">
-        <h3 style="margin-bottom:1rem">Filters</h3>
+        <h3 style="margin-bottom:1rem" data-i18n="browse.filters">Filters</h3>
         <div class="filter-group">
-          <h4>Search</h4>
-          <input type="text" id="filter-search" placeholder="Keywords…">
+          <h4 data-i18n="browse.filter.search">Search</h4>
+          <input type="text" id="filter-search" data-i18n="browse.filter.search_placeholder" data-i18n-attr="placeholder" placeholder="Keywords…">
         </div>
         <div class="filter-group">
-          <h4>Category</h4>
-          <select id="filter-category" id="category-select">
-            <option value="">All Categories</option>
+          <h4 data-i18n="browse.filter.category">Category</h4>
+          <select id="filter-category">
+            <option value="" data-i18n="browse.filter.all_categories">All Categories</option>
           </select>
         </div>
         <div class="filter-group">
-          <h4>Price (BDT)</h4>
+          <h4 data-i18n="browse.filter.price">Price (BDT)</h4>
           <div class="price-range">
-            <input type="number" id="filter-min-price" placeholder="Min" min="0">
+            <input type="number" id="filter-min-price" data-i18n="browse.filter.min" data-i18n-attr="placeholder" placeholder="Min" min="0">
             <span>–</span>
-            <input type="number" id="filter-max-price" placeholder="Max" min="0">
+            <input type="number" id="filter-max-price" data-i18n="browse.filter.max" data-i18n-attr="placeholder" placeholder="Max" min="0">
           </div>
         </div>
         <div class="filter-group">
-          <h4>Location</h4>
-          <input type="text" id="filter-location" placeholder="City, district…">
+          <h4 data-i18n="browse.filter.location">Location</h4>
+          <input type="text" id="filter-location" data-i18n="browse.filter.location_placeholder" data-i18n-attr="placeholder" placeholder="City, district…">
         </div>
-        <button class="btn btn-primary" style="width:100%" onclick="applyFilters()">Apply Filters</button>
-        <button class="btn btn-outline" style="width:100%;margin-top:.5rem" onclick="clearFilters()">Clear</button>
+        <button class="btn btn-primary" style="width:100%" onclick="applyFilters()" data-i18n="browse.filter.apply">Apply Filters</button>
+        <button class="btn btn-outline" style="width:100%;margin-top:.5rem" onclick="clearFilters()" data-i18n="browse.filter.clear">Clear</button>
       </aside>
 
       <!-- Results -->

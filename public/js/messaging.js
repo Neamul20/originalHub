@@ -1,5 +1,7 @@
 // messaging.js – real-time polling message system
 
+const mt = (key, vars) => typeof I18n !== 'undefined' ? I18n.t(key, vars) : key;
+
 let activeProductId = null;
 let activeOtherUserId = null;
 let pollInterval = null;
@@ -12,7 +14,7 @@ async function loadThreads() {
   try {
     const threads = await apiFetch('/messages/threads');
     if (!threads.length) {
-      list.innerHTML = '<p style="padding:1rem;color:var(--text-muted);font-size:.9rem">No conversations yet.</p>';
+      list.innerHTML = `<p style="padding:1rem;color:var(--text-muted);font-size:.9rem">${mt('msg.no_conversations')}</p>`;
       return;
     }
     list.innerHTML = threads.map(t => `
@@ -22,7 +24,7 @@ async function loadThreads() {
         <div class="thread-item-preview">${escHtml(t.product_title || '')}</div>
         <div style="display:flex;justify-content:space-between;align-items:center;margin-top:.2rem">
           <span style="font-size:.75rem;color:var(--text-muted)">${timeAgo(t.last_message_at)}</span>
-          ${parseInt(t.unread_count) > 0 ? `<span class="thread-unread">${t.unread_count} new</span>` : ''}
+          ${parseInt(t.unread_count) > 0 ? `<span class="thread-unread">${t.unread_count} ${mt('msg.unread_new')}</span>` : ''}
         </div>
       </div>`).join('');
   } catch (err) {
@@ -73,13 +75,14 @@ function renderChat(data) {
 
   const product = data.product;
   const other   = data.other_user;
+  const maxLen  = cfg.MESSAGE_MAX_LENGTH || 2000;
 
   main.innerHTML = `
     <div class="chat-header">
-      Chat with ${escHtml(other?.full_name || 'Seller')}
-      ${product ? ` about <em>${escHtml(product.title)}</em>` : ''}
-      <button class="btn btn-outline btn-sm" style="float:right" onclick="reportConversation()">⚑ Report</button>
-      <button class="btn btn-sm" style="float:right;margin-right:.5rem" onclick="blockUser(${activeOtherUserId})">🚫 Block</button>
+      ${mt('msg.chat_with')} ${escHtml(other?.full_name || 'Seller')}
+      ${product ? ` ${mt('msg.about')} <em>${escHtml(product.title)}</em>` : ''}
+      <button class="btn btn-outline btn-sm" style="float:right" onclick="reportConversation()">${mt('msg.report_btn')}</button>
+      <button class="btn btn-sm" style="float:right;margin-right:.5rem" onclick="blockUser(${activeOtherUserId})">${mt('msg.block_btn')}</button>
     </div>
 
     ${product ? `
@@ -101,20 +104,20 @@ function renderChat(data) {
 
     <div class="chat-input-area">
       <div style="flex:1;display:flex;flex-direction:column;gap:2px">
-        <textarea id="msg-input" placeholder="Type a message…" maxlength="${cfg.MESSAGE_MAX_LENGTH || 2000}"
+        <textarea id="msg-input" placeholder="${mt('msg.placeholder')}" maxlength="${maxLen}"
                   onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
-                  oninput="document.getElementById('msg-char-count').textContent=this.value.length+' / ${cfg.MESSAGE_MAX_LENGTH || 2000}'"
+                  oninput="document.getElementById('msg-char-count').textContent=this.value.length+' / ${maxLen}'"
                   rows="1"></textarea>
-        <small id="msg-char-count" style="text-align:right;color:var(--text-muted);font-size:.72rem">0 / ${cfg.MESSAGE_MAX_LENGTH || 2000}</small>
+        <small id="msg-char-count" style="text-align:right;color:var(--text-muted);font-size:.72rem">0 / ${maxLen}</small>
       </div>
-      <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+      <button class="btn btn-primary" onclick="sendMessage()">${mt('msg.send')}</button>
     </div>`;
 
   scrollToBottom();
 }
 
 function renderMessages(messages, myId) {
-  if (!messages.length) return '<p style="text-align:center;color:var(--text-muted);padding:2rem">No messages yet. Say hi!</p>';
+  if (!messages.length) return `<p style="text-align:center;color:var(--text-muted);padding:2rem">${mt('msg.no_messages')}</p>`;
   return messages.map(m => {
     const isMine = m.from_user_id === myId;
     return `
@@ -160,7 +163,7 @@ async function sendMessage() {
 // ── Start a new chat from product page ───────────────────────────────────────
 async function initFromUrlParams() {
   const params = new URLSearchParams(window.location.search);
-  const productId  = params.get('product');
+  const productId   = params.get('product');
   const otherUserId = params.get('user');
   if (productId && otherUserId) {
     await loadThreads();
@@ -171,22 +174,22 @@ async function initFromUrlParams() {
 }
 
 async function blockUser(userId) {
-  if (!confirm('Block this user? You will no longer receive messages from them.')) return;
+  if (!confirm(mt('msg.block_confirm'))) return;
   try {
     await apiFetch('/messages/block', { method: 'POST', body: JSON.stringify({ user_id: userId }) });
-    toast('User blocked');
+    toast(mt('msg.blocked'));
     window.location.reload();
   } catch (err) { toast(err.message, 'danger'); }
 }
 
 async function reportConversation() {
-  const reason = prompt('Reason for report:\n1. Harassment\n2. Scam attempt\n3. Spam\n4. Other\n\nType the reason:');
+  const reason = prompt(mt('msg.report_prompt'));
   if (!reason) return;
   try {
     await apiFetch('/reports', {
       method: 'POST',
       body: JSON.stringify({ conversation_product_id: activeProductId, reason }),
     });
-    toast('Report submitted');
+    toast(mt('msg.report_success'));
   } catch (err) { toast(err.message, 'danger'); }
 }

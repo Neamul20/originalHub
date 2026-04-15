@@ -9,12 +9,12 @@
 <body>
   <nav id="main-nav"></nav>
   <div class="container page-content">
-    <h2 style="margin-bottom:1.5rem">My Account</h2>
+    <h2 style="margin-bottom:1.5rem" data-i18n="buyer.title">My Account</h2>
     <div class="tabs">
-      <button class="tab-btn buyer-tab-btn active" data-tab="favorites"  onclick="switchBuyerTab('favorites')">Saved Items</button>
-      <button class="tab-btn buyer-tab-btn"         data-tab="messages"   onclick="switchBuyerTab('messages')">My Messages</button>
-      <button class="tab-btn buyer-tab-btn"         data-tab="reports"    onclick="switchBuyerTab('reports')">My Reports</button>
-      <button class="tab-btn buyer-tab-btn"         data-tab="settings"   onclick="switchBuyerTab('settings')">Settings</button>
+      <button class="tab-btn buyer-tab-btn active" data-tab="favorites"  onclick="switchBuyerTab('favorites')" data-i18n="buyer.tab.favorites">Saved Items</button>
+      <button class="tab-btn buyer-tab-btn"         data-tab="messages"   onclick="switchBuyerTab('messages')" data-i18n="buyer.tab.messages">My Messages</button>
+      <button class="tab-btn buyer-tab-btn"         data-tab="reports"    onclick="switchBuyerTab('reports')" data-i18n="buyer.tab.reports">My Reports</button>
+      <button class="tab-btn buyer-tab-btn"         data-tab="settings"   onclick="switchBuyerTab('settings')" data-i18n="buyer.tab.settings">Settings</button>
     </div>
     <div id="buyer-tab-favorites" class="buyer-tab-panel active"><div id="favorites-list"></div></div>
     <div id="buyer-tab-messages"  class="buyer-tab-panel"><div id="buyer-threads"></div></div>

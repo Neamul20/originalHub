@@ -39,6 +39,8 @@ const Auth = {
 };
 
 // ── Login modal ─────────────────────────────────────────────────────────────
+const at = (key) => typeof I18n !== 'undefined' ? I18n.t(key) : key;
+
 function showAuthModal(tab = 'login') {
   let modal = document.getElementById('auth-modal');
   if (!modal) {
@@ -48,29 +50,29 @@ function showAuthModal(tab = 'login') {
     modal.innerHTML = `
       <div class="modal">
         <div class="modal-header">
-          <span id="auth-modal-title">Login</span>
+          <span id="auth-modal-title">${at('auth.tab.login')}</span>
           <button class="modal-close" onclick="closeAuthModal()">✕</button>
         </div>
         <div class="modal-body">
           <div class="tabs">
-            <button class="tab-btn" data-tab="login" onclick="switchAuthTab('login')">Login</button>
-            <button class="tab-btn" data-tab="register" onclick="switchAuthTab('register')">Register</button>
-            <button class="tab-btn" data-tab="forgot" onclick="switchAuthTab('forgot')">Forgot Password</button>
+            <button class="tab-btn" data-tab="login" onclick="switchAuthTab('login')">${at('auth.tab.login')}</button>
+            <button class="tab-btn" data-tab="register" onclick="switchAuthTab('register')">${at('auth.tab.register')}</button>
+            <button class="tab-btn" data-tab="forgot" onclick="switchAuthTab('forgot')">${at('auth.tab.forgot')}</button>
           </div>
 
           <!-- Login -->
           <div class="tab-panel" id="auth-tab-login">
             <form onsubmit="submitLogin(event)">
               <div class="form-group">
-                <label>Email</label>
+                <label>${at('auth.email')}</label>
                 <input type="email" id="login-email" required>
               </div>
               <div class="form-group">
-                <label>Password</label>
+                <label>${at('auth.password')}</label>
                 <input type="password" id="login-password" required>
               </div>
               <div id="login-error" class="error-msg"></div>
-              <button type="submit" class="btn btn-primary" style="width:100%">Login</button>
+              <button type="submit" class="btn btn-primary" style="width:100%">${at('auth.tab.login')}</button>
             </form>
           </div>
 
@@ -78,54 +80,54 @@ function showAuthModal(tab = 'login') {
           <div class="tab-panel" id="auth-tab-register">
             <form onsubmit="submitRegister(event)">
               <div class="form-group">
-                <label>I want to join as</label>
+                <label>${at('auth.join_as')}</label>
                 <div style="display:flex;gap:.75rem;margin-top:.25rem">
                   <label style="flex:1;cursor:pointer">
                     <input type="radio" name="reg-role" id="reg-role-buyer" value="buyer" checked onchange="toggleSellerFields()" style="margin-right:.4rem">
-                    <strong>Buyer</strong> – browse &amp; buy
+                    <strong>${at('auth.buyer')}</strong> – ${at('auth.buyer_desc')}
                   </label>
                   <label style="flex:1;cursor:pointer">
                     <input type="radio" name="reg-role" id="reg-role-seller" value="seller" onchange="toggleSellerFields()" style="margin-right:.4rem">
-                    <strong>Seller</strong> – sell handmade
+                    <strong>${at('auth.seller')}</strong> – ${at('auth.seller_desc')}
                   </label>
                 </div>
               </div>
               <div class="form-group">
-                <label>Full Name</label>
+                <label>${at('auth.full_name')}</label>
                 <input type="text" id="reg-name" required>
               </div>
               <div class="form-group">
-                <label>Email</label>
+                <label>${at('auth.email')}</label>
                 <input type="email" id="reg-email" required>
               </div>
               <div class="form-group">
-                <label>Password <span class="form-hint">(min 8 characters)</span></label>
+                <label>${at('auth.password')} <span class="form-hint">${at('auth.password_hint')}</span></label>
                 <input type="password" id="reg-password" required minlength="8">
               </div>
               <!-- Seller-only fields -->
               <div id="seller-reg-fields" style="display:none">
                 <div class="form-group">
-                  <label>Shop Name</label>
+                  <label>${at('auth.shop_name')}</label>
                   <input type="text" id="reg-shop-name" maxlength="100">
                 </div>
                 <div class="form-group">
-                  <label>Bio <span class="form-hint">(tell buyers about yourself)</span></label>
+                  <label>${at('auth.bio')} <span class="form-hint">${at('auth.bio_hint')}</span></label>
                   <textarea id="reg-bio" rows="2"></textarea>
                 </div>
                 <div class="form-group">
-                  <label>Location</label>
+                  <label>${at('auth.location')}</label>
                   <input type="text" id="reg-location">
                 </div>
                 <div class="form-group">
-                  <label>Handmade Promise <span class="form-hint">(describe what you make)</span></label>
+                  <label>${at('auth.handmade_promise')} <span class="form-hint">${at('auth.handmade_promise_hint')}</span></label>
                   <textarea id="reg-handmade-promise" rows="2"></textarea>
                 </div>
                 <div class="alert alert-warning" style="font-size:.82rem;padding:.5rem .75rem;margin-bottom:.5rem">
-                  Your seller account will be reviewed by an admin before you can list products.
+                  ${at('auth.seller_review_notice')}
                 </div>
               </div>
               <div id="reg-error" class="error-msg"></div>
-              <button type="submit" class="btn btn-primary" style="width:100%" id="reg-submit-btn">Create Account</button>
+              <button type="submit" class="btn btn-primary" style="width:100%" id="reg-submit-btn">${at('auth.create_account')}</button>
             </form>
           </div>
 
@@ -133,11 +135,11 @@ function showAuthModal(tab = 'login') {
           <div class="tab-panel" id="auth-tab-forgot">
             <form onsubmit="submitForgot(event)">
               <div class="form-group">
-                <label>Email Address</label>
+                <label>${at('auth.forgot_email_label')}</label>
                 <input type="email" id="forgot-email" required>
               </div>
               <div id="forgot-msg" class="alert" style="display:none"></div>
-              <button type="submit" class="btn btn-primary" style="width:100%">Send Reset Link</button>
+              <button type="submit" class="btn btn-primary" style="width:100%">${at('auth.send_reset')}</button>
             </form>
           </div>
         </div>
@@ -161,7 +163,7 @@ function switchAuthTab(tab) {
     p.classList.toggle('active', p.id === `auth-tab-${tab}`);
   });
   document.getElementById('auth-modal-title').textContent =
-    tab === 'login' ? 'Login' : tab === 'register' ? 'Create Account' : 'Forgot Password';
+    tab === 'login' ? at('auth.tab.login') : tab === 'register' ? at('auth.tab.register') : at('auth.tab.forgot');
 }
 
 async function submitLogin(e) {

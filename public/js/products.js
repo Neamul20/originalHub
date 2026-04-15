@@ -1,5 +1,7 @@
 // products.js – browse, search, filter, product detail
 
+const t = (key, vars) => typeof I18n !== 'undefined' ? I18n.t(key, vars) : key;
+
 let currentPage = 1;
 let currentFilters = {};
 
@@ -15,9 +17,13 @@ async function loadProducts(page = 1) {
     renderProductGrid(data.products);
     renderPagination('pagination', data.page, data.pages, loadProducts);
     const info = document.getElementById('results-info');
-    if (info) info.textContent = `${data.total} item${data.total !== 1 ? 's' : ''} found`;
+    if (info) {
+      info.textContent = data.total === 1
+        ? t('browse.items_found_one')
+        : t('browse.items_found', { n: data.total });
+    }
   } catch (err) {
-    grid.innerHTML = `<p class="error-msg">Failed to load products: ${err.message}</p>`;
+    grid.innerHTML = `<p class="error-msg">${t('browse.load_error')}${err.message}</p>`;
   }
 }
 
@@ -25,7 +31,7 @@ function renderProductGrid(products) {
   const grid = document.getElementById('product-grid');
   if (!grid) return;
   if (!products.length) {
-    grid.innerHTML = '<p style="color:var(--text-muted);text-align:center;grid-column:1/-1;padding:3rem">No products found.</p>';
+    grid.innerHTML = `<p style="color:var(--text-muted);text-align:center;grid-column:1/-1;padding:3rem">${t('browse.no_products')}</p>`;
     return;
   }
   grid.innerHTML = products.map(p => {
@@ -47,16 +53,15 @@ function renderProductGrid(products) {
 }
 
 function applyFilters() {
-  const cfg = typeof ORIGINALHUB_CONFIG !== 'undefined' ? ORIGINALHUB_CONFIG : {};
   currentFilters = {};
-  const search  = document.getElementById('filter-search')?.value?.trim();
+  const search   = document.getElementById('filter-search')?.value?.trim();
   const category = document.getElementById('filter-category')?.value;
   const minPrice = document.getElementById('filter-min-price')?.value;
   const maxPrice = document.getElementById('filter-max-price')?.value;
   const location = document.getElementById('filter-location')?.value?.trim();
 
-  if (search)   currentFilters.search   = search;
-  if (category) currentFilters.category = category;
+  if (search)   currentFilters.search    = search;
+  if (category) currentFilters.category  = category;
   if (minPrice) currentFilters.min_price = minPrice;
   if (maxPrice) currentFilters.max_price = maxPrice;
   if (location) currentFilters.location  = location;
@@ -74,7 +79,7 @@ async function loadProductDetail() {
     renderProductDetail(p);
   } catch (err) {
     document.getElementById('product-detail')?.insertAdjacentHTML('beforeend',
-      `<p class="error-msg">Product not found or no longer available.</p>`);
+      `<p class="error-msg">${t('product.not_found')}</p>`);
   }
 }
 
@@ -88,11 +93,10 @@ function renderProductDetail(p) {
     `<img class="gallery-thumb${i === 0 ? ' active' : ''}" src="${escHtml(img.image_url)}" onclick="switchMainImg(this)">`
   ).join('');
 
-  const isFavorited = false;
   const user = Auth.getUser();
   const msgBtn = user
-    ? `<button class="btn btn-primary btn-lg" onclick="startChat(${p.seller_user_id}, ${p.id})">💬 Message Seller</button>`
-    : `<button class="btn btn-primary btn-lg" onclick="showAuthModal('login')">💬 Message Seller</button>`;
+    ? `<button class="btn btn-primary btn-lg" onclick="startChat(${p.seller_user_id}, ${p.id})">${t('product.message_seller')}</button>`
+    : `<button class="btn btn-primary btn-lg" onclick="showAuthModal('login')">${t('product.message_seller')}</button>`;
 
   el.innerHTML = `
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:start" class="product-detail-grid">
@@ -107,32 +111,35 @@ function renderProductDetail(p) {
         <h1 style="margin-bottom:.5rem">${escHtml(p.title)}</h1>
         <div style="font-size:1.8rem;font-weight:700;color:var(--primary);margin-bottom:.5rem">${formatPrice(p.price)}</div>
         <div style="font-size:.9rem;color:var(--text-muted);margin-bottom:1rem">
-          Sold by <a href="/seller.html?id=${p.seller_user_id}">${escHtml(p.shop_name)}</a>
+          ${t('product.sold_by')} <a href="/seller.html?id=${p.seller_user_id}">${escHtml(p.shop_name)}</a>
           ${p.location ? ' · ' + escHtml(p.location) : ''}
         </div>
         ${p.category ? `<div style="margin-bottom:.75rem"><span class="status-badge" style="background:#f0e8df;color:var(--accent)">${escHtml(p.category)}</span></div>` : ''}
 
         <div style="display:flex;gap:.75rem;flex-wrap:wrap;margin-bottom:1.5rem">
           ${msgBtn}
-          <button class="btn btn-outline" id="fav-btn" onclick="toggleFavorite(${p.id})" ${!user ? 'title="Login to save"' : ''}>♡ Save</button>
+          <button class="btn btn-outline" id="fav-btn" onclick="toggleFavorite(${p.id})" ${!user ? 'title="Login to save"' : ''}>${t('product.save')}</button>
         </div>
 
         <div class="card" style="margin-bottom:1rem">
-          <div class="card-header">Description</div>
+          <div class="card-header">${t('product.description')}</div>
           <div class="card-body" style="white-space:pre-wrap">${escHtml(p.description)}</div>
         </div>
         <div class="card" style="margin-bottom:1rem">
-          <div class="card-header">✋ Handmade Proof</div>
+          <div class="card-header">${t('product.handmade_proof')}</div>
           <div class="card-body" style="white-space:pre-wrap">${escHtml(p.handmade_proof_text)}</div>
         </div>
         <details style="margin-bottom:1rem">
-          <summary style="cursor:pointer;color:var(--text-muted);font-size:.9rem">Report this listing</summary>
+          <summary style="cursor:pointer;color:var(--text-muted);font-size:.9rem">${t('product.report_listing')}</summary>
           <div style="margin-top:.75rem">
             <select id="report-reason" class="form-control" style="margin-bottom:.5rem;width:auto">
-              <option value="">Select reason…</option>
-              <option>Not handmade</option><option>Fake listing</option><option>Spam</option><option>Other</option>
+              <option value="">${t('product.report_select')}</option>
+              <option>${t('product.report_not_handmade')}</option>
+              <option>${t('product.report_fake')}</option>
+              <option>${t('product.report_spam')}</option>
+              <option>${t('product.report_other')}</option>
             </select>
-            <button class="btn btn-danger btn-sm" onclick="submitReport(${p.id})">Submit Report</button>
+            <button class="btn btn-danger btn-sm" onclick="submitReport(${p.id})">${t('product.report_submit')}</button>
           </div>
         </details>
       </div>
@@ -141,7 +148,6 @@ function renderProductDetail(p) {
       @media(max-width:700px){.product-detail-grid{grid-template-columns:1fr !important}}
     </style>`;
 
-  // Check favorite state
   if (user) checkFavorite(p.id);
 }
 
@@ -155,7 +161,7 @@ async function checkFavorite(productId) {
   try {
     const d = await apiFetch(`/buyer/favorites/${productId}/check`);
     const btn = document.getElementById('fav-btn');
-    if (btn) btn.textContent = d.favorited ? '♥ Saved' : '♡ Save';
+    if (btn) btn.textContent = d.favorited ? t('product.saved') : t('product.save');
   } catch {}
 }
 
@@ -165,21 +171,21 @@ async function toggleFavorite(productId) {
     const d = await apiFetch(`/buyer/favorites/${productId}/check`);
     if (d.favorited) {
       await apiFetch(`/buyer/favorites/${productId}`, { method: 'DELETE' });
-      document.getElementById('fav-btn').textContent = '♡ Save';
+      document.getElementById('fav-btn').textContent = t('product.save');
     } else {
       await apiFetch(`/buyer/favorites/${productId}`, { method: 'POST' });
-      document.getElementById('fav-btn').textContent = '♥ Saved';
+      document.getElementById('fav-btn').textContent = t('product.saved');
     }
   } catch (err) { toast(err.message, 'danger'); }
 }
 
 async function submitReport(productId) {
   const reason = document.getElementById('report-reason')?.value;
-  if (!reason) { toast('Please select a reason', 'warning'); return; }
+  if (!reason) { toast(t('product.select_reason'), 'warning'); return; }
   if (!Auth.isLoggedIn()) { showAuthModal('login'); return; }
   try {
     await apiFetch('/reports', { method: 'POST', body: JSON.stringify({ product_id: productId, reason }) });
-    toast('Report submitted. Thank you.');
+    toast(t('product.report_success'));
   } catch (err) { toast(err.message, 'danger'); }
 }
 
@@ -189,8 +195,8 @@ function startChat(sellerId, productId) {
 
 // ── Category filter pills ─────────────────────────────────────────────────────
 function renderCategoryFilter() {
-  const el = document.getElementById('category-select');
+  const el = document.getElementById('filter-category');
   if (!el || typeof ORIGINALHUB_CONFIG === 'undefined') return;
-  el.innerHTML = '<option value="">All Categories</option>' +
+  el.innerHTML = `<option value="">${t('browse.filter.all_categories')}</option>` +
     ORIGINALHUB_CONFIG.CATEGORIES.map(c => `<option value="${c}">${c}</option>`).join('');
 }
