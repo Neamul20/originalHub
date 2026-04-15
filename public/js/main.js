@@ -69,7 +69,11 @@ async function renderNavbar() {
     let unread = 0;
     try { const d = await apiFetch('/messages/unread/count'); unread = d.count || 0; } catch {}
     const badge = unread ? `<span class="badge">${unread}</span>` : '';
+    const roleColors = { buyer: '#3b82f6', seller: '#16a34a', admin: '#dc2626' };
+    const roleColor = roleColors[user.role] || '#6b7280';
+    const roleBadge = `<span style="background:${roleColor};color:#fff;font-size:.72rem;font-weight:700;padding:.15rem .5rem;border-radius:999px;text-transform:uppercase;letter-spacing:.04em">${escHtml(user.role)}</span>`;
     rightHtml = `
+      ${roleBadge}
       <a href="/messages.html">${tr('nav.messages')}${badge}</a>
       ${user.role === 'seller' || user.role === 'admin' ? `<a href="/seller-dashboard.html">${tr('nav.my_shop')}</a>` : ''}
       ${user.role === 'buyer' || user.role === 'seller' ? `<a href="/buyer-dashboard.html">${tr('nav.my_account')}</a>` : ''}

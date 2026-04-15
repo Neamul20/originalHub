@@ -389,9 +389,19 @@ textarea { resize: vertical; min-height: 100px; }
 .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); font-weight: 600; }
 .tab-panel { display: none; }
 .tab-panel.active { display: block; }
+.buyer-tab-panel { display: none; }
+.buyer-tab-panel.active { display: block; }
 
 /* ── Dashboard layout ────────────────────────────────────────────── */
 .dashboard-layout { display: grid; grid-template-columns: 220px 1fr; gap: 1.5rem; }
+.sidebar-nav {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: .75rem .5rem;
+  height: fit-content;
+}
 .sidebar-nav a {
   display: block;
   padding: .6rem .85rem;

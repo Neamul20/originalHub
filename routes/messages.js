@@ -8,33 +8,43 @@ const config = require('../config');
 router.get('/threads', requireAuth, async (req, res) => {
   try {
     const result = await db.query(
-      `SELECT
-         LEAST(m.from_user_id, m.to_user_id) AS user1_id,
-         GREATEST(m.from_user_id, m.to_user_id) AS user2_id,
-         m.product_id,
-         p.title as product_title,
-         p.status as product_status,
-         (SELECT pi.image_url FROM product_images pi WHERE pi.product_id=m.product_id ORDER BY pi.sort_order LIMIT 1) as product_thumbnail,
-         MAX(m.created_at) AS last_message_at,
-         COUNT(m.id) AS message_count,
-         SUM(CASE WHEN m.is_read=FALSE AND m.to_user_id=$1 THEN 1 ELSE 0 END) AS unread_count,
-         (SELECT msg.message FROM messages msg
-          WHERE ((msg.from_user_id=m.from_user_id AND msg.to_user_id=m.to_user_id)
-              OR (msg.from_user_id=m.to_user_id AND msg.to_user_id=m.from_user_id))
-          AND msg.product_id=m.product_id
-          ORDER BY msg.created_at DESC LIMIT 1) as last_message,
-         CASE WHEN LEAST(m.from_user_id, m.to_user_id)=$1
-              THEN u2.full_name ELSE u1.full_name END as other_user_name,
-         CASE WHEN LEAST(m.from_user_id, m.to_user_id)=$1
-              THEN GREATEST(m.from_user_id, m.to_user_id)
-              ELSE LEAST(m.from_user_id, m.to_user_id) END as other_user_id
-       FROM messages m
-       JOIN products p ON p.id = m.product_id
-       JOIN users u1 ON u1.id = LEAST(m.from_user_id, m.to_user_id)
-       JOIN users u2 ON u2.id = GREATEST(m.from_user_id, m.to_user_id)
-       WHERE m.from_user_id=$1 OR m.to_user_id=$1
-       GROUP BY user1_id, user2_id, m.product_id, p.title, p.status, u1.full_name, u2.full_name
-       ORDER BY last_message_at DESC`,
+      `WITH thread_agg AS (
+         SELECT
+           LEAST(from_user_id, to_user_id)    AS user1_id,
+           GREATEST(from_user_id, to_user_id) AS user2_id,
+           product_id,
+           MAX(created_at)                    AS last_message_at,
+           COUNT(*)                           AS message_count,
+           SUM(CASE WHEN is_read=FALSE AND to_user_id=$1 THEN 1 ELSE 0 END) AS unread_count
+         FROM messages
+         WHERE from_user_id=$1 OR to_user_id=$1
+         GROUP BY LEAST(from_user_id, to_user_id), GREATEST(from_user_id, to_user_id), product_id
+       ),
+       last_msg AS (
+         SELECT DISTINCT ON (LEAST(from_user_id, to_user_id), GREATEST(from_user_id, to_user_id), product_id)
+           LEAST(from_user_id, to_user_id)    AS user1_id,
+           GREATEST(from_user_id, to_user_id) AS user2_id,
+           product_id,
+           message AS last_message
+         FROM messages
+         WHERE from_user_id=$1 OR to_user_id=$1
+         ORDER BY LEAST(from_user_id, to_user_id), GREATEST(from_user_id, to_user_id), product_id, created_at DESC
+       )
+       SELECT
+         ta.user1_id, ta.user2_id, ta.product_id,
+         p.title  AS product_title,
+         p.status AS product_status,
+         (SELECT pi.image_url FROM product_images pi WHERE pi.product_id=ta.product_id ORDER BY pi.sort_order LIMIT 1) AS product_thumbnail,
+         ta.last_message_at, ta.message_count, ta.unread_count,
+         lm.last_message,
+         CASE WHEN ta.user1_id=$1 THEN u2.full_name ELSE u1.full_name END AS other_user_name,
+         CASE WHEN ta.user1_id=$1 THEN ta.user2_id  ELSE ta.user1_id  END AS other_user_id
+       FROM thread_agg ta
+       JOIN last_msg lm ON lm.user1_id=ta.user1_id AND lm.user2_id=ta.user2_id AND lm.product_id=ta.product_id
+       JOIN products p  ON p.id=ta.product_id
+       JOIN users u1    ON u1.id=ta.user1_id
+       JOIN users u2    ON u2.id=ta.user2_id
+       ORDER BY ta.last_message_at DESC`,
       [req.user.id]
     );
     res.json(result.rows);

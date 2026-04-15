@@ -2,6 +2,8 @@
 
 const _t = (key, vars) => typeof I18n !== 'undefined' ? I18n.t(key, vars) : key;
 
+const _buyerTabLoaded = {};
+
 async function loadBuyerDashboard() {
   if (!Auth.isLoggedIn()) {
     window.location.href = '/';
@@ -18,6 +20,9 @@ function switchBuyerTab(tab) {
   document.querySelectorAll('.buyer-tab-panel').forEach(p =>
     p.classList.toggle('active', p.id === `buyer-tab-${tab}`)
   );
+
+  if (_buyerTabLoaded[tab]) return; // already loaded — keep existing content
+  _buyerTabLoaded[tab] = true;
 
   if (tab === 'favorites')      loadFavorites();
   else if (tab === 'messages')  loadBuyerThreads();
