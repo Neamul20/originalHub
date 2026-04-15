@@ -44,6 +44,50 @@ router.get('/threads', requireAuth, async (req, res) => {
   }
 });
 
+// GET /api/messages/unread/count – unread message count (MUST be before /:productId/:otherUserId)
+router.get('/unread/count', requireAuth, async (req, res) => {
+  try {
+    const result = await db.query(
+      'SELECT COUNT(*) as count FROM messages WHERE to_user_id=$1 AND is_read=FALSE',
+      [req.user.id]
+    );
+    res.json({ count: parseInt(result.rows[0].count) });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// POST /api/messages/block – block a user (MUST be before /:productId/:otherUserId)
+router.post('/block', requireAuth, async (req, res) => {
+  try {
+    const { user_id } = req.body;
+    if (!user_id) return res.status(400).json({ error: 'user_id required' });
+    if (parseInt(user_id) === req.user.id)
+      return res.status(400).json({ error: 'Cannot block yourself' });
+
+    await db.query(
+      'INSERT INTO blocked_users (blocker_id, blocked_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
+      [req.user.id, user_id]
+    );
+    res.json({ message: 'User blocked' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// DELETE /api/messages/block/:userId – unblock
+router.delete('/block/:userId', requireAuth, async (req, res) => {
+  try {
+    await db.query('DELETE FROM blocked_users WHERE blocker_id=$1 AND blocked_id=$2', [
+      req.user.id,
+      req.params.userId,
+    ]);
+    res.json({ message: 'User unblocked' });
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
 // GET /api/messages/:productId/:otherUserId – get messages in a thread
 router.get('/:productId/:otherUserId', requireAuth, async (req, res) => {
   try {
@@ -132,50 +176,6 @@ router.post('/', requireAuth, messageLimiter, async (req, res) => {
     res.status(201).json(result.rows[0]);
   } catch (err) {
     console.error(err);
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// GET /api/messages/unread/count – unread message count
-router.get('/unread/count', requireAuth, async (req, res) => {
-  try {
-    const result = await db.query(
-      'SELECT COUNT(*) as count FROM messages WHERE to_user_id=$1 AND is_read=FALSE',
-      [req.user.id]
-    );
-    res.json({ count: parseInt(result.rows[0].count) });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// POST /api/messages/block – block a user
-router.post('/block', requireAuth, async (req, res) => {
-  try {
-    const { user_id } = req.body;
-    if (!user_id) return res.status(400).json({ error: 'user_id required' });
-    if (parseInt(user_id) === req.user.id)
-      return res.status(400).json({ error: 'Cannot block yourself' });
-
-    await db.query(
-      'INSERT INTO blocked_users (blocker_id, blocked_id) VALUES ($1,$2) ON CONFLICT DO NOTHING',
-      [req.user.id, user_id]
-    );
-    res.json({ message: 'User blocked' });
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// DELETE /api/messages/block/:userId – unblock
-router.delete('/block/:userId', requireAuth, async (req, res) => {
-  try {
-    await db.query('DELETE FROM blocked_users WHERE blocker_id=$1 AND blocked_id=$2', [
-      req.user.id,
-      req.params.userId,
-    ]);
-    res.json({ message: 'User unblocked' });
-  } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
 });

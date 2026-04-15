@@ -45,4 +45,30 @@ async function sendSellerApproval(toEmail, shopName, approved, reason) {
   });
 }
 
-module.exports = { sendPasswordReset, sendSellerApproval };
+async function sendAccountStatus(toEmail, fullName, action, suspendedUntil) {
+  const transporter = createTransport();
+  let subject, html;
+
+  if (action === 'banned') {
+    subject = 'Your OriginalHub account has been banned';
+    html = `<h2>Account Banned</h2><p>Hi ${fullName},</p><p>Your OriginalHub account has been permanently banned due to violations of our terms of service.</p><p>If you believe this is a mistake, please contact support.</p>`;
+  } else if (action === 'suspended') {
+    const until = suspendedUntil ? new Date(suspendedUntil).toDateString() : 'a temporary period';
+    subject = 'Your OriginalHub account has been suspended';
+    html = `<h2>Account Suspended</h2><p>Hi ${fullName},</p><p>Your OriginalHub account has been temporarily suspended until <strong>${until}</strong> due to multiple reports against your listings.</p><p>After this period your account will be automatically reinstated.</p>`;
+  } else if (action === 'unbanned') {
+    subject = 'Your OriginalHub account has been reinstated';
+    html = `<h2>Account Reinstated</h2><p>Hi ${fullName},</p><p>Your OriginalHub account has been reinstated. You can now log in and continue using the platform.</p>`;
+  }
+
+  if (!subject) return;
+
+  await transporter.sendMail({
+    from: `"OriginalHub" <${process.env.EMAIL_USER}>`,
+    to: toEmail,
+    subject,
+    html,
+  });
+}
+
+module.exports = { sendPasswordReset, sendSellerApproval, sendAccountStatus };

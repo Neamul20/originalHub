@@ -100,9 +100,13 @@ function renderChat(data) {
     </div>
 
     <div class="chat-input-area">
-      <textarea id="msg-input" placeholder="Type a message…" maxlength="${cfg.MESSAGE_MAX_LENGTH || 2000}"
-                onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
-                rows="1"></textarea>
+      <div style="flex:1;display:flex;flex-direction:column;gap:2px">
+        <textarea id="msg-input" placeholder="Type a message…" maxlength="${cfg.MESSAGE_MAX_LENGTH || 2000}"
+                  onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendMessage()}"
+                  oninput="document.getElementById('msg-char-count').textContent=this.value.length+' / ${cfg.MESSAGE_MAX_LENGTH || 2000}'"
+                  rows="1"></textarea>
+        <small id="msg-char-count" style="text-align:right;color:var(--text-muted);font-size:.72rem">0 / ${cfg.MESSAGE_MAX_LENGTH || 2000}</small>
+      </div>
       <button class="btn btn-primary" onclick="sendMessage()">Send</button>
     </div>`;
 

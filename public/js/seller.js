@@ -51,7 +51,7 @@ function renderSellerProducts(products) {
               <td>${p.thumbnail ? `<img src="${escHtml(p.thumbnail)}" style="width:50px;height:40px;object-fit:cover;border-radius:4px">` : '—'}</td>
               <td>${escHtml(p.title)}</td>
               <td>${formatPrice(p.price)}</td>
-              <td>${statusBadge(p.status)}</td>
+              <td>${statusBadge(p.status)}${p.status === 'rejected' && p.rejection_reason ? `<br><small style="color:var(--danger);font-size:.75rem">Reason: ${escHtml(p.rejection_reason)}</small>` : ''}</td>
               <td>${p.views}</td>
               <td style="white-space:nowrap">
                 <button class="btn btn-outline btn-sm" onclick="editProduct(${p.id})">Edit</button>
@@ -74,7 +74,7 @@ function showAddProduct() {
 
 async function editProduct(id) {
   try {
-    const p = await apiFetch(`/products/${id}`);
+    const p = await apiFetch(`/products/mine/${id}`);
     editingProductId = id;
     openProductModal(p);
   } catch (err) { toast(err.message, 'danger'); }

@@ -116,6 +116,17 @@ async function migrate() {
     );
   `);
 
+  // Unique constraint: one seller profile per user
+  await db.query(`
+    DO $$ BEGIN
+      IF NOT EXISTS (
+        SELECT 1 FROM pg_constraint WHERE conname = 'seller_profiles_user_id_unique'
+      ) THEN
+        ALTER TABLE seller_profiles ADD CONSTRAINT seller_profiles_user_id_unique UNIQUE (user_id);
+      END IF;
+    END $$;
+  `);
+
   // Indexes
   await db.query(`CREATE INDEX IF NOT EXISTS idx_products_seller ON products(seller_id);`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_products_status ON products(status);`);
@@ -123,6 +134,8 @@ async function migrate() {
   await db.query(`CREATE INDEX IF NOT EXISTS idx_messages_to_user ON messages(to_user_id);`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_messages_product ON messages(product_id);`);
   await db.query(`CREATE INDEX IF NOT EXISTS idx_messages_created ON messages(created_at);`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_seller_profiles_user ON seller_profiles(user_id);`);
+  await db.query(`CREATE INDEX IF NOT EXISTS idx_seller_profiles_approved ON seller_profiles(is_approved);`);
 
   console.log('Migrations complete.');
   process.exit(0);

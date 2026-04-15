@@ -75,7 +75,40 @@ router.get('/', async (req, res) => {
   }
 });
 
-// GET /api/products/:id – single product detail
+// GET /api/products/mine/list – seller's own products (MUST be before /:id)
+router.get('/mine/list', requireAuth, requireRole('seller', 'admin'), async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT p.*, (SELECT pi.image_url FROM product_images pi WHERE pi.product_id=p.id ORDER BY pi.sort_order LIMIT 1) as thumbnail
+       FROM products p WHERE p.seller_id=$1 ORDER BY p.created_at DESC`,
+      [req.user.id]
+    );
+    res.json(result.rows);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/products/mine/:id – seller fetch their own product by id (any status)
+router.get('/mine/:id', requireAuth, requireRole('seller', 'admin'), async (req, res) => {
+  try {
+    const result = await db.query(
+      `SELECT p.*,
+              (SELECT json_agg(json_build_object('image_url', pi.image_url, 'sort_order', pi.sort_order)
+                               ORDER BY pi.sort_order)
+               FROM product_images pi WHERE pi.product_id=p.id) as images
+       FROM products p
+       WHERE p.id=$1 AND p.seller_id=$2`,
+      [req.params.id, req.user.id]
+    );
+    if (!result.rows.length) return res.status(404).json({ error: 'Product not found' });
+    res.json(result.rows[0]);
+  } catch (err) {
+    res.status(500).json({ error: 'Server error' });
+  }
+});
+
+// GET /api/products/:id – single product detail (public, published only)
 router.get('/:id', async (req, res) => {
   try {
     const result = await db.query(
@@ -114,6 +147,11 @@ router.post('/', requireAuth, requireRole('seller'), (req, res, next) => {
       return res.status(400).json({ error: 'title, description, price, handmade_proof_text required' });
     if (description.length < 50)
       return res.status(400).json({ error: 'Description must be at least 50 characters' });
+    if (handmade_proof_text.length < 20)
+      return res.status(400).json({ error: 'Handmade proof must be at least 20 characters' });
+    const parsedPrice = parseFloat(price);
+    if (isNaN(parsedPrice) || parsedPrice <= 0)
+      return res.status(400).json({ error: 'Price must be a positive number' });
 
     // Check if seller is approved
     const sp = await db.query('SELECT is_approved FROM seller_profiles WHERE user_id=$1', [req.user.id]);
@@ -125,26 +163,37 @@ router.post('/', requireAuth, requireRole('seller'), (req, res, next) => {
       "SELECT COUNT(*) as cnt FROM products WHERE seller_id=$1 AND status IN ('published','pending_review','rejected','sold')",
       [req.user.id]
     );
-    const productStatus = parseInt(publishedCount.rows[0].cnt) < 3 ? 'pending_review' : (status === 'draft' ? 'draft' : 'pending_review');
+    const productStatus = parseInt(publishedCount.rows[0].cnt) < 3
+      ? 'pending_review'
+      : (status === 'draft' ? 'draft' : 'pending_review');
 
-    const result = await db.query(
-      `INSERT INTO products (seller_id, title, description, price, category, location, handmade_proof_text, status)
-       VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
-      [req.user.id, title, description, parseFloat(price), category, location, handmade_proof_text, productStatus]
-    );
-    const product = result.rows[0];
+    // Use a transaction so product + images are atomic
+    const client = await db.getClient();
+    try {
+      await client.query('BEGIN');
+      const result = await client.query(
+        `INSERT INTO products (seller_id, title, description, price, category, location, handmade_proof_text, status)
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8) RETURNING *`,
+        [req.user.id, title, description, parsedPrice, category, location, handmade_proof_text, productStatus]
+      );
+      const product = result.rows[0];
 
-    // Save uploaded images
-    if (req.files && req.files.length) {
-      for (let i = 0; i < req.files.length; i++) {
-        await db.query(
-          'INSERT INTO product_images (product_id, image_url, sort_order) VALUES ($1,$2,$3)',
-          [product.id, `/uploads/products/${req.files[i].filename}`, i]
-        );
+      if (req.files && req.files.length) {
+        for (let i = 0; i < req.files.length; i++) {
+          await client.query(
+            'INSERT INTO product_images (product_id, image_url, sort_order) VALUES ($1,$2,$3)',
+            [product.id, `/uploads/products/${req.files[i].filename}`, i]
+          );
+        }
       }
+      await client.query('COMMIT');
+      res.status(201).json(product);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
     }
-
-    res.status(201).json(product);
   } catch (err) {
     console.error(err);
     res.status(500).json({ error: 'Server error' });
@@ -160,28 +209,47 @@ router.put('/:id', requireAuth, requireRole('seller'), (req, res, next) => {
 }, async (req, res) => {
   try {
     const { title, description, price, category, location, handmade_proof_text } = req.body;
-    const result = await db.query('SELECT * FROM products WHERE id=$1 AND seller_id=$2', [req.params.id, req.user.id]);
-    if (!result.rows.length) return res.status(404).json({ error: 'Product not found' });
 
-    const updated = await db.query(
-      `UPDATE products SET title=$1, description=$2, price=$3, category=$4, location=$5,
-       handmade_proof_text=$6, status='pending_review', updated_at=NOW()
-       WHERE id=$7 AND seller_id=$8 RETURNING *`,
-      [title, description, parseFloat(price), category, location, handmade_proof_text, req.params.id, req.user.id]
-    );
+    if (!title || !description || !price || !handmade_proof_text)
+      return res.status(400).json({ error: 'title, description, price, handmade_proof_text required' });
+    if (description.length < 50)
+      return res.status(400).json({ error: 'Description must be at least 50 characters' });
+    if (handmade_proof_text.length < 20)
+      return res.status(400).json({ error: 'Handmade proof must be at least 20 characters' });
+    const parsedPrice = parseFloat(price);
+    if (isNaN(parsedPrice) || parsedPrice <= 0)
+      return res.status(400).json({ error: 'Price must be a positive number' });
 
-    // Handle new images
-    if (req.files && req.files.length) {
-      await db.query('DELETE FROM product_images WHERE product_id=$1', [req.params.id]);
-      for (let i = 0; i < req.files.length; i++) {
-        await db.query(
-          'INSERT INTO product_images (product_id, image_url, sort_order) VALUES ($1,$2,$3)',
-          [req.params.id, `/uploads/products/${req.files[i].filename}`, i]
-        );
+    const existing = await db.query('SELECT * FROM products WHERE id=$1 AND seller_id=$2', [req.params.id, req.user.id]);
+    if (!existing.rows.length) return res.status(404).json({ error: 'Product not found' });
+
+    const client = await db.getClient();
+    try {
+      await client.query('BEGIN');
+      const updated = await client.query(
+        `UPDATE products SET title=$1, description=$2, price=$3, category=$4, location=$5,
+         handmade_proof_text=$6, status='pending_review', rejection_reason=NULL, updated_at=NOW()
+         WHERE id=$7 AND seller_id=$8 RETURNING *`,
+        [title, description, parsedPrice, category, location, handmade_proof_text, req.params.id, req.user.id]
+      );
+
+      if (req.files && req.files.length) {
+        await client.query('DELETE FROM product_images WHERE product_id=$1', [req.params.id]);
+        for (let i = 0; i < req.files.length; i++) {
+          await client.query(
+            'INSERT INTO product_images (product_id, image_url, sort_order) VALUES ($1,$2,$3)',
+            [req.params.id, `/uploads/products/${req.files[i].filename}`, i]
+          );
+        }
       }
+      await client.query('COMMIT');
+      res.json(updated.rows[0]);
+    } catch (err) {
+      await client.query('ROLLBACK');
+      throw err;
+    } finally {
+      client.release();
     }
-
-    res.json(updated.rows[0]);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
@@ -214,20 +282,6 @@ router.put('/:id/sold', requireAuth, requireRole('seller'), async (req, res) => 
       [req.user.id]
     );
     res.json(result.rows[0]);
-  } catch (err) {
-    res.status(500).json({ error: 'Server error' });
-  }
-});
-
-// GET /api/products/mine/list – seller's own products
-router.get('/mine/list', requireAuth, requireRole('seller', 'admin'), async (req, res) => {
-  try {
-    const result = await db.query(
-      `SELECT p.*, (SELECT pi.image_url FROM product_images pi WHERE pi.product_id=p.id ORDER BY pi.sort_order LIMIT 1) as thumbnail
-       FROM products p WHERE p.seller_id=$1 ORDER BY p.created_at DESC`,
-      [req.user.id]
-    );
-    res.json(result.rows);
   } catch (err) {
     res.status(500).json({ error: 'Server error' });
   }
