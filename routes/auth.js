@@ -9,11 +9,14 @@ const { authLimiter } = require('../middleware/rateLimit');
 // POST /api/auth/register
 router.post('/register', authLimiter, async (req, res) => {
   try {
-    const { email, password, full_name } = req.body;
+    const { email, password, full_name, intent, shop_name, bio, location, handmade_promise } = req.body;
     if (!email || !password || !full_name)
       return res.status(400).json({ error: 'email, password and full_name are required' });
     if (password.length < 8)
       return res.status(400).json({ error: 'Password must be at least 8 characters' });
+
+    if (intent === 'seller' && !shop_name)
+      return res.status(400).json({ error: 'shop_name is required for seller registration' });
 
     const existing = await db.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
     if (existing.rows.length) return res.status(409).json({ error: 'Email already registered' });
@@ -24,6 +27,15 @@ router.post('/register', authLimiter, async (req, res) => {
       [email.toLowerCase(), hash, full_name]
     );
     const user = result.rows[0];
+
+    // Auto-create seller profile if intent is seller
+    if (intent === 'seller') {
+      await db.query(
+        'INSERT INTO seller_profiles (user_id, shop_name, bio, location, handmade_promise) VALUES ($1,$2,$3,$4,$5)',
+        [user.id, shop_name, bio || '', location || '', handmade_promise || '']
+      );
+    }
+
     const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, { expiresIn: '7d' });
     res.status(201).json({ token, user });
   } catch (err) {
